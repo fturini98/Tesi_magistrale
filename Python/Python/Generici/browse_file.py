@@ -1,43 +1,70 @@
+import tkinter as tk
 import os
 
 def get_folder_path():
     """
-    Ask the user to input the main folder path where all the data are saved.
+    Prompts the user to input the main folder path where all the data are saved.
+
     If no input is provided, a default folder path is used.
+    If the user inputs 'quit' or 'q', the program stops.
+    If the folder path is invalid, the user is prompted to input a valid path.
 
     Returns:
     - The user-provided folder path if it's valid.
-    - None if the folder path is invalid.
+    - None if the program is stopped or the folder path is invalid.
     """
-    # Prompt user for folder path
-    user_input = input("Enter the data folder path (or press Enter for default): ")
+    while True:
+        # Prompt user for folder path
+        user_input = input("Enter the data folder path (or press Enter for default), 'quit' or 'q' to stop: ")
 
-    # Check if user input is empty
-    if not user_input:
-        # Assign a default or standard path
-        folder_path = "C:/Users/fturi/Desktop/Dati"
-    else:
-        folder_path = user_input
+        # Check if user wants to quit
+        if user_input.lower() in ["quit", "q"]:
+            print("Program stopped.")
+            # Perform any necessary cleanup or additional actions before exiting
+            exit(0)
 
-    # Validate the folder path
-    if os.path.isdir(folder_path):
-        return folder_path
-    else:
-        print("Invalid folder path!")
-        return None
+        # Check if user input is empty
+        if not user_input:
+            # Assign a default or standard path
+            folder_path = "C:/Users/fturi/Desktop/Dati"
+        else:
+            folder_path = user_input
 
-main_data_folder=get_folder_path()
+        # Validate the folder path
+        if os.path.isdir(folder_path):
+            return folder_path
+        else:
+            print("Invalid folder path! Please try again.")
 
-import tkinter as tk
-import os
+def browse_and_select_files(folder_path):
+    """Browse and select files and folders from a specified folder path.
 
+    This function provides a file browsing interface that allows the user to browse and select files and folders from a specified folder path. The selected files and folders are stored in separate lists and returned at the end of the browsing session.
 
-def browse_files(folder_path):
+    Args:
+        folder_path (str): The path of the folder to browse.
+
+    Returns:
+        tuple: A tuple containing two lists. The first list contains the selected file paths, and the second list contains the selected folder paths.
+    """
+
     selected_files = []  # Array to store selected file paths
+    selected_folders = [] # Array to store selected folder paths
 
     def browse_directory(path):
+        """Browse the specified directory and populate the file listbox with its contents.
+
+        This function is called when browsing a directory. It takes a path as input and populates the file listbox with the contents of the directory. The function updates the current_path variable and displays the path in the entry field.
+
+        Args:
+            path (str): The path of the directory to browse.
+
+        Returns:
+            None
+        """
         nonlocal current_path
         nonlocal selected_files
+        nonlocal selected_folders
         current_path = path
         entry.delete(0, tk.END)  # Clear the entry field
         entry.insert(tk.END, current_path)  # Update the entry field with the current path
@@ -47,41 +74,147 @@ def browse_files(folder_path):
         for item in os.listdir(path):
             item_path = os.path.join(path, item)
             if os.path.isdir(item_path):
-                listbox.insert(tk.END, "[D] " + item)  # Prefix subfolders with "[D]"
+                item_signature = "[D] "
+                if item_path in selected_folders:
+                    item_signature += "[X] "
+                listbox.insert(tk.END, item_signature + item)  # Prefix subfolders with "[D]"
             else:
-                listbox.insert(tk.END, "[F] " + item)  # Prefix files with "[F]"
+                item_signature = "[F] "
+                if item_path in selected_files:
+                    item_signature += "[X] "
+                listbox.insert(tk.END, item_signature + item)  # Prefix files with "[F]"
 
-    def select_item(event):
+    def add_item():
+        """Add the selected item to the selected files or folders list.
+
+        This function is called when the user clicks the "Add File" button in the file browsing interface. It retrieves the selected item from the listbox, adds the corresponding file or folder to the selected files or folders list, and updates the listbox by marking the item as selected.
+
+        Returns:
+            None
+        """
         selection = listbox.curselection()
         if selection:
             selected_item = listbox.get(selection[0])
             item_name = selected_item[4:]  # Remove the "[D] " or "[F] " prefix
             item_path = os.path.join(current_path, item_name)
             if os.path.isfile(item_path):
+                if "[X] " in item_name:
+                    item_name = item_name.replace("[X] ", "")  # Remove "[X]" from the item name
                 if item_path not in selected_files:
                     selected_files.append(item_path)
+                    selected_item = selected_item[:4] + "[X] " + item_name  # Add "[X]" immediately after "[F]"
+                    listbox.delete(selection[0])
+                    listbox.insert(selection[0], selected_item)  # Update the listbox item
+            elif os.path.isdir(item_path):
+                if "[X] " in item_name:
+                    item_name = item_name.replace("[X] ", "")  # Remove "[X]" from the item name
+                if item_path not in selected_folders:
+                    selected_folders.append(item_path)
+                    selected_item = selected_item[:4] + "[X] " + item_name  # Add "[X]" immediately after "[D]"
+                    listbox.delete(selection[0])
+                    listbox.insert(selection[0], selected_item)  # Update the listbox item
+    
+    def remove_item():
+        """Remove the selected item from the listbox and the corresponding file or folder from the selected files or folders list.
 
-    def go_inside():
+        This function is called when the user clicks the "Remove File" button in the file browsing interface. It retrieves the selected item from the listbox, removes the corresponding file or folder from the selected files or folders list, and updates the listbox by removing the item from the display.
+
+        Returns:
+         None
+        """
+        selection = listbox.curselection()
+        if selection:
+            selected_item = listbox.get(selection[0])
+            
+            item_name=selected_item.replace("[X] ","") # Remove the "[X] " prefix
+            item_name = item_name[4:]  # Remove the "[D] " or "[F] " prefix
+            
+            item_path = os.path.join(current_path, item_name)
+            item_signature = ""  # Initialize item_signature
+            if os.path.isfile(item_path):
+                if item_path in selected_files:
+                    selected_files.remove(item_path)
+                item_signature = "[F] "  # Set item_signature for files
+            elif os.path.isdir(item_path):
+                if item_path in selected_folders:
+                    selected_folders.remove(item_path)
+                item_signature = "[D] "  # Set item_signature for folders
+            selected_item = item_signature + item_name  # Recreate the item with the correct signature
+            listbox.delete(selection[0])
+            listbox.insert(selection[0], selected_item)  # Update the listbox item
+    
+    def go_inside(event):
+        """Browse inside the selected folder when double-clicked.
+
+        This function is called when the user double-clicks on a folder item in the file listbox. It retrieves the selected folder item, removes any selection marker from its name, and browses inside the selected folder.
+
+        Args:
+            event: The event object triggered by the double-click action.
+
+        Returns:
+            None
+        """
         selection = listbox.curselection()
         if selection:
             selected_item = listbox.get(selection[0])
             item_name = selected_item[4:]  # Remove the "[D] " or "[F] " prefix
+            if "[X] " in item_name:
+                    item_name = item_name.replace("[X] ", "")  # Remove "[X]" from the item name
             item_path = os.path.join(current_path, item_name)
             if os.path.isdir(item_path):
                 browse_directory(item_path)
 
     def go_back():
-        parent_path = os.path.dirname(current_path)
-        browse_directory(parent_path)
+        """Browse back to the parent directory.
+
+        This function is called when the user clicks the "Go Back" button in the file browsing interface. It retrieves the parent path of the current directory and browses to that directory.
+
+        Returns:
+            None
+        """
+        if current_path == folder_path:
+            print("Already at the start folder.")
+        else:
+            parent_path = os.path.dirname(current_path)
+            browse_directory(parent_path)
 
     def stop_browsing():
-        print("Selected Files:")
-        for file_path in selected_files:
-            print(file_path)
+        """Stop browsing and print the selected files and folders.
+
+        This function is called when the user clicks the "Stop and Print" button in the file browsing interface. It checks if any files or folders have been selected and prints the selected files and folders to the console. The function then terminates the browsing session.
+
+        Returns:
+            None
+        """
+        if not selected_files and not selected_folders:
+            print("No selected files or folders.")
+        else:
+            if len(selected_files) > 3:
+                print("Selected Files:")
+                print(*selected_files[:2], sep="\n")  # Print first 2 files
+                print("...")
+                print(*selected_files[-1:], sep="\n")  # Print last file
+            elif not selected_files:
+                print("No selected files.")
+            else:
+                print("Selected Files:")
+                print(*selected_files, sep="\n")
+
+            if len(selected_folders) > 3:
+                print("Selected Folders:")
+                print(*selected_folders[:2], sep="\n")  # Print first 2 folders
+                print("...")
+                print(*selected_folders[-1:], sep="\n")  # Print last folder
+            elif not selected_folders:
+                print("No selected folders.")
+            else:
+                print("Selected Folders:")
+                print(*selected_folders, sep="\n")
+                
         root.quit()
 
     root = tk.Tk()
-    root.title("File Browser")
+    root.title("Select data to analyzes")
 
     # Path Entry Field
     entry = tk.Entry(root, width=50)
@@ -90,27 +223,34 @@ def browse_files(folder_path):
     # File Listbox
     listbox = tk.Listbox(root, width=100, height=20)
     listbox.pack()
-    listbox.bind("<<ListboxSelect>>", select_item)
+    #Bind of the action: for example ""<Double-Button-1>"" ensure that when there is a double click the function go_inside is call.
+    listbox.bind("<Double-Button-1>", go_inside)
 
-    # Buttons Frame
-    buttons_frame = tk.Frame(root)
-    buttons_frame.pack()
-
+    # Buttons Frame positions
+    buttons_frame_center = tk.Frame(root)
+    buttons_frame_center.pack()
+    
+    buttons_frame_left= tk.Frame(root)
+    buttons_frame_left.pack(side=tk.LEFT)
+    
+    buttons_frame_right= tk.Frame(root)
+    buttons_frame_right.pack(side=tk.RIGHT)
+    
     # Add File Button
-    add_button = tk.Button(buttons_frame, text="Add File", command=select_item)
-    add_button.pack(side=tk.LEFT)
-
-    # Go Inside Button
-    go_inside_button = tk.Button(buttons_frame, text="Go Inside", command=go_inside)
-    go_inside_button.pack(side=tk.LEFT)
+    add_button = tk.Button(buttons_frame_center, text="Add File", command=add_item)
+    add_button.pack()
+    
+    #Remove file Button
+    add_button = tk.Button(buttons_frame_center, text="Remove File", command=remove_item)
+    add_button.pack()
 
     # Back Button
-    back_button = tk.Button(buttons_frame, text="Go Back", command=go_back)
-    back_button.pack(side=tk.LEFT)
+    back_button = tk.Button(buttons_frame_left, text="Go Back", command=go_back)
+    back_button.pack()
 
     # Stop Button
-    stop_button = tk.Button(buttons_frame, text="Stop and Print", command=stop_browsing)
-    stop_button.pack(side=tk.LEFT)
+    stop_button = tk.Button(buttons_frame_right, text="Stop and Print", command=stop_browsing)
+    stop_button.pack()
 
     # Initial browsing
     current_path = folder_path
@@ -118,12 +258,16 @@ def browse_files(folder_path):
 
     root.mainloop()
 
-    return selected_files
+    return selected_files,selected_folders
 
+def load_files():
+    main_data_folder=get_folder_path()
+    file_paths,folder_paths=browse_and_select_files(main_data_folder)
+    
+    #Change the paths format for future use
+    file_paths=[s.replace("\\", "/") for s in file_paths]
+    folder_paths=[s.replace("\\", "/") for s in folder_paths]
+    
+    return file_paths,folder_paths
 
-
-file_paths = browse_files(main_data_folder)
-
-print("Selected Files:")
-for file_path in file_paths:
-    print(file_path)
+test_file_paths,test_folder_paths = load_files()
