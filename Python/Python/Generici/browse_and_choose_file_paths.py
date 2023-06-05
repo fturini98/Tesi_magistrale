@@ -15,11 +15,11 @@ def get_folder_path():
     """
     while True:
         # Prompt user for folder path
-        user_input = input("Enter the data folder path (or press Enter for default), 'quit' or 'q' to stop: ")
+        user_input = input("\033[34mEnter the data folder path (or press Enter for default), 'quit' or 'q' to stop:\033[0m ")
 
         # Check if user wants to quit
         if user_input.lower() in ["quit", "q"]:
-            print("Program stopped.")
+            print("\033[31mProgram stopped.\033[0m")
             # Perform any necessary cleanup or additional actions before exiting
             exit(0)
 
@@ -34,7 +34,7 @@ def get_folder_path():
         if os.path.isdir(folder_path):
             return folder_path
         else:
-            print("Invalid folder path! Please try again.")
+            print("\033[33mInvalid folder path! Please try again.\033[0m")
 
 def browse_and_select_files(folder_path):
     """Browse and select files and folders from a specified folder path.
@@ -181,13 +181,17 @@ def browse_and_select_files(folder_path):
     def stop_browsing():
         """Stop browsing and print the selected files and folders.
 
-        This function is called when the user clicks the "Stop and Print" button in the file browsing interface. It checks if any files or folders have been selected and prints the selected files and folders to the console. The function then terminates the browsing session.
+        This function is called when the user clicks the "Stop and Print" button in the file browsing interface. 
+        It checks if any files or folders have been selected and prints the selected files and folders to the console.(this part is disabled)
+        The function then terminates the browsing session.
 
         Returns:
             None
         """
         if not selected_files and not selected_folders:
-            print("No selected files or folders.")
+            print("\033[31mNo selected files or folders.Program stoped.\033[0m")
+            exit(0)
+        '''
         else:
             if len(selected_files) > 3:
                 print("Selected Files:")
@@ -210,7 +214,7 @@ def browse_and_select_files(folder_path):
             else:
                 print("Selected Folders:")
                 print(*selected_folders, sep="\n")
-                
+        '''   
         root.quit()
 
     root = tk.Tk()
@@ -260,7 +264,15 @@ def browse_and_select_files(folder_path):
 
     return selected_files,selected_folders
 
-def load_files():
+def choose_file_paths():
+    """
+    Allows the user to select files and folders through browsing, removes nested paths, and returns the cleared file paths and parent folder paths.
+
+    Returns:
+        tuple: A tuple containing two lists - cleared_file_paths (list[str]): A list of cleared file paths that are not nested within any of the parent folder paths, and parent_folder_paths (list[str]): A list of parent folder paths without any nested folder paths.
+    """
+    
+    #choose the files via browsing
     main_data_folder=get_folder_path()
     file_paths,folder_paths=browse_and_select_files(main_data_folder)
     
@@ -268,6 +280,97 @@ def load_files():
     file_paths=[s.replace("\\", "/") for s in file_paths]
     folder_paths=[s.replace("\\", "/") for s in folder_paths]
     
-    return file_paths,folder_paths
+    def are_paths_nested(path, parent_paths):
+        """
+        Check if a given path is nested within any of the parent paths.
 
-test_file_paths,test_folder_paths = load_files()
+        Args:
+            path (str): The path to check.
+            parent_paths (list[str]): A list of parent paths to compare against.
+
+        Returns:
+            bool: True if the path is nested within any of the parent paths, False otherwise.
+
+        Example:
+            >>> parent_paths = ['/home/user', '/var/log']
+            >>> path = '/home/user/documents'
+            >>> are_paths_nested(path, parent_paths)
+            True
+        """
+        return any(not os.path.relpath(path, parent_path).startswith("..") for parent_path in parent_paths)
+
+    def remove_innested_folder_paths(paths):
+        """
+        Remove nested folder paths from the given list of paths.
+
+        Args:
+            paths (list[str]): A list of paths to process.
+
+        Returns:
+            list[str]: A list of parent paths without any nested folder paths.
+
+        Example:
+            >>> paths = ['/var/log', '/var/log/messages', '/home/user', '/home/user/documents']
+            >>> remove_innested_folder_paths(paths)
+            ['/var/log', '/home/user']
+        """
+        # Sort the paths
+        paths.sort()
+    
+        # Create a array to keep track of parent folders to return
+        parent_paths = []
+        for path in paths:
+            if not are_paths_nested(path,parent_paths):
+                parent_paths.append(path)
+        return parent_paths
+    
+    def remove_innested_file_paths(parent_folder_paths,file_paths):
+        """
+        Removes nested file paths from the given list based on the parent folder paths.
+
+        Args:
+            parent_folder_paths (list): A list of parent folder paths.
+            file_paths (list): A list of file paths.
+
+        Returns:
+            list: A list of cleared file paths that are not nested within any of the parent folder paths.
+        """
+        
+        #create an arry for save the list of files thath are not in the folders
+        cleared_file_paths=[]
+        for path in file_paths:
+            if not are_paths_nested(path,parent_folder_paths):
+                cleared_file_paths.append(path)
+        return cleared_file_paths
+    
+    #eliminate the mulitple files and folder
+    parent_folder_paths=remove_innested_folder_paths(folder_paths)
+    
+    cleared_file_paths=remove_innested_file_paths(parent_folder_paths,file_paths)
+    
+    #print the cleared files and folders lists
+    if len(parent_folder_paths) > 3:
+        print("\033[32mEffective selected folders:\033[0m")
+        print(*parent_folder_paths[:2], sep="\n")  # Print first 2 folders
+        print("...")
+        print(*parent_folder_paths[-1:], sep="\n")  # Print last folder
+    elif not parent_folder_paths:
+        print("\033[33mNo effective selected folders.\033[0m")
+    else:
+        print("\033[32mEffective selected folders:\033[0m")
+        print(*parent_folder_paths, sep="\n")
+    
+    if len(cleared_file_paths) > 3:
+        print("\033[32mEffective selected extra files:\033[0m")
+        print(*cleared_file_paths[:2], sep="\n")  # Print first 2 files
+        print("...")
+        print(*cleared_file_paths[-1:], sep="\n")  # Print last file
+    elif not cleared_file_paths:
+       print("\033[33mNo selected extra file.\033[0m")
+    else:
+        print("\033[32mEffective selected extra files:\033[0m")
+        print(*cleared_file_paths, sep="\n")
+    
+    return cleared_file_paths,parent_folder_paths
+
+test_file_paths,test_folder_paths = choose_file_paths()
