@@ -373,4 +373,4 @@ def choose_file_paths():
     
     return cleared_file_paths,parent_folder_paths
 
-test_file_paths,test_folder_paths = choose_file_paths()
+#test_file_paths,test_folder_paths = choose_file_paths()
