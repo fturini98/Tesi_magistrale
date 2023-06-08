@@ -1,15 +1,19 @@
-from browse_and_choose_file_paths import *
-from tkinter import ttk
-from IPython.display import clear_output
-import threading
-import pandasgui
-import pandas as pd
+import json
 import re
+import threading
+import pandas as pd
+#import pandasgui
+from IPython.display import clear_output
+from tkinter import ttk
+from browse_and_choose_file_paths import *
 
-file_paths=['C:/Users/fturi/Desktop/Dati/Test/tools-isocrone-out/RID_Z0.00163_He0.2504_ML1.90_55555555_AS09a0.DAT/AOUT_M0.83_Z0.00163_He0.2504_ML1.90_55555555_AS09a0.DAT']
+
+#file_paths=['C:/Users/fturi/Desktop/Dati/Test/tools-isocrone-out/RID_Z0.00163_He0.2504_ML1.90_55555555_AS09a0.DAT/AOUT_M0.83_Z0.00163_He0.2504_ML1.90_55555555_AS09a0.DAT']
 folder_paths=['C:/Users/fturi/Desktop/Dati/Test/tools-driver-out/M0.76_Z0.00135_He0.2499_ML1.90_55555555_AS09a0', 'C:/Users/fturi/Desktop/Dati/Test/tools-isocrone-out/ISO_Z0.00135_He0.2499_ML1.90_55555555_AS09a0.DAT', 'C:/Users/fturi/Desktop/Dati/Test/tools-isocrone-out/RID_Z0.00135_He0.2499_ML1.90_55555555_AS09a0.DAT']
+#folder_paths=[]
+file_paths=[]
 
-#Section of code for managing the paths and generate the data tree with the function gen_tree().
+#Section of code for managing the files and folders paths and generate the data tree with the function gen_tree().
 
 def extract_root_path_and_name(file_paths, folder_paths):
     """
@@ -257,9 +261,89 @@ def gen_tree(file_paths, folder_paths):
 
 #Section for implementing the saving and loading of trees
 
+def save_tree_with_shell(tree, folder_path):
+    save_tree = input("Do you want to save the tree? (y/n): ")
+    if save_tree.lower() != "y":
+        print("Tree not saved.")
+        return
+
+    file_name = input("Enter a file name: ")
+    if not file_name:
+        print("File name is empty. Tree not saved.")
+        return
+
+    # Create the DataTrees folder if it doesn't exist
+    data_trees_folder = os.path.join(folder_path, "DataTrees")
+    if not os.path.exists(data_trees_folder):
+        os.makedirs(data_trees_folder)
+
+    file_path = os.path.join(data_trees_folder, file_name)
+
+    # Check if the file already exists
+    while os.path.exists(file_path):
+        overwrite = input("A file with the same name already exists. Do you want to overwrite it? (y/n): ")
+        if overwrite.lower() == "y":
+            break
+        confirm = input("Do you want to choose a different file name? (y/n): ")
+        if confirm.lower() != "y":
+            print("Tree not saved. Exiting.")
+            return
+        file_name = input("Enter a different file name: ")
+        if not file_name:
+            print("File name is empty. Tree not saved.")
+            return
+        file_path = os.path.join(data_trees_folder, file_name)
+
+    # Serialize the tree to JSON
+    def serialize_tree(node):
+        if isinstance(node, dict):
+            return {k: serialize_tree(v) for k, v in node.items()}
+        elif isinstance(node, pd.DataFrame):
+            return {"type": "DataFrame", "data": node.to_dict(orient="split")}
+        return node
+
+    serialized_tree = serialize_tree(tree)
+
+    # Save the serialized tree to a file
+    with open(file_path, "w") as file:
+        json.dump(serialized_tree, file)
+
+    print(f"Tree saved to {file_path}")
+
+def load_tree_from_file(folder_path, file_name):
+    # Check if the DataTrees folder exists
+    data_trees_folder = os.path.join(folder_path, "DataTrees")
+    if not os.path.exists(data_trees_folder):
+        raise FileNotFoundError("DataTrees folder does not exist in the specified path.")
+
+    # Check if the file exists
+    file_path = os.path.join(data_trees_folder, file_name)
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"The specified file '{file_name}' does not exist in the DataTrees folder.")
+
+    # Load the serialized tree from the file
+    with open(file_path, "r") as file:
+        serialized_tree = json.load(file)
+
+    # Deserialize the tree, including DataFrames
+    def deserialize_tree(node):
+        if isinstance(node, dict):
+            if "type" in node and node["type"] == "DataFrame":
+                # Convert the serialized DataFrame back to a DataFrame object
+                data = node["data"]["data"]
+                index = node["data"]["index"]
+                columns = node["data"]["columns"]
+                return pd.DataFrame(data, index=index, columns=columns)
+            return {k: deserialize_tree(v) for k, v in node.items()}
+        return node
+
+    tree = deserialize_tree(serialized_tree)
+
+    return tree
+
 #Section of the code for show the tree structure and work on it
 
-def browse_tree(tree,root=tk.Tk()):
+def simple_browse_tree(tree,root=tk.Tk()):
     node_dataframes = {}
     def on_tree_select(event):
         item = treeview.focus()
@@ -291,7 +375,7 @@ def browse_tree(tree,root=tk.Tk()):
 
 #Section for porting the program to the jupyter notebook(remeber to execute the generation of the three only one time)
 
-def run_on_jupyter_function(tkinter_function, *args, **kwargs):
+def jupyter_run_gui_function(tkinter_function, *args, **kwargs):
     """
     Run a tkinter function in a separate thread within a Jupyter Notebook.
 
@@ -311,7 +395,7 @@ def run_on_jupyter_function(tkinter_function, *args, **kwargs):
         root = tk.Tk()
         
         #This is need it if you call the interactives function form multiple time, whitout this the kernell crash
-        root.protocol("WM_DELETE_WINDOW", root.quit)  # Handle window close event
+        root.protocol("WM_DELETE_WINDOW", root.destroy)  # Handle window close event
         tkinter_function(root=root,*args, **kwargs)
         root.mainloop()
     
@@ -319,11 +403,20 @@ def run_on_jupyter_function(tkinter_function, *args, **kwargs):
     thread = threading.Thread(target=thread_func)
     thread.start()
 
-def jupyter_browse_tree(tree):
-    run_on_jupyter_function(browse_tree,tree)
+def jupyter_simple_browse_tree(tree):
+    jupyter_run_gui_function(simple_browse_tree,tree)
 
-tree = gen_tree(file_paths, folder_paths)
-test=tree["Test"]["tools-driver-out"]["RAW"]["Z0.00135_He0.2499_ML1.90"]["M0.76"]["LOG(T)"]
-print(test)
+#Tests
+
+
+data_folder_path="C:/Users/fturi/Desktop/Dati"
+
+#tree=load_tree_from_file(data_folder_path,"pippo")
+
+#simple_browse_tree(tree)
+
+
 #browse_tree(tree)
-#print("dopo")
+#save_tree_with_gui(tree,data_folder_path)
+#tree_test=load_tree_from_file(data_folder_path,"tree_test5")
+#browse_tree(tree_test)
