@@ -83,24 +83,28 @@ def manage_folder(folder_paths, file_paths):
                 file_paths.append(file_dat_path)
 
         # Manage the Mass folder inside the tools-driver-out folder
-        if folder_name.startswith("M"):
+        elif folder_name.startswith("M"):
             file_paths.append(folder_path + "/OUT.DAT")
 
         # Manage the ISO folders
-        if folder_name.startswith("ISO"):
+        elif folder_name.startswith("ISO"):
             print("\033[31mISO folders are not implemented. Excluding:", folder_name, "\033[0m")
 
         # Manage the RID folders
-        if folder_name.startswith("RID"):
+        elif folder_name.startswith("RID"):
             file_paths = manage_RID_folders(folder_path, file_paths)
 
         # Manage the tools-isocrone-out folder
-        if folder_name == "tools-isocrone-out":
+        elif folder_name == "tools-isocrone-out":
             sub_folders = os.listdir(folder_path)
             for sub_folder in sub_folders:
                 if sub_folder.startswith("RID"):
                     sub_folder_path = folder_path + "/" + sub_folder
                     file_paths = manage_RID_folders(sub_folder_path, file_paths)
+        
+        #Manage the folders that aren't tools-isocrone-out or tools-driver-out
+        else:
+            print("\033[33m\ The biggests folders that i can manage are tools-isocrone-out and tools-driver-out.Excluding from the tree:",folder_name,"\033[0m")
 
     return file_paths
 
@@ -318,8 +322,8 @@ def run_on_jupyter_function(tkinter_function, *args, **kwargs):
 def jupyter_browse_tree(tree):
     run_on_jupyter_function(browse_tree,tree)
 
-#tree = gen_tree(file_paths, folder_paths)
-#test=tree["Test"]["tools-driver-out"]["RAW"]["Z0.00135_He0.2499_ML1.90"]["M0.76"]["LOG(T)"]
-#print(test)
+tree = gen_tree(file_paths, folder_paths)
+test=tree["Test"]["tools-driver-out"]["RAW"]["Z0.00135_He0.2499_ML1.90"]["M0.76"]["LOG(T)"]
+print(test)
 #browse_tree(tree)
 #print("dopo")
