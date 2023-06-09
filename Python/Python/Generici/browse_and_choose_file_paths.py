@@ -1,7 +1,8 @@
 import tkinter as tk
 import os
+import sys
 
-def get_folder_path():
+def get_main_data_folder_path(data_folder_path="C:/Users/fturi/Desktop/Dati"):
     """
     Prompts the user to input the main folder path where all the data are saved.
 
@@ -20,13 +21,13 @@ def get_folder_path():
         # Check if user wants to quit
         if user_input.lower() in ["quit", "q"]:
             print("\033[31mProgram stopped.\033[0m")
-            # Perform any necessary cleanup or additional actions before exiting
-            exit(0)
+            # Perform any necessary cleanup or additional actions before exiting(the sys library is for working on jupyter)
+            sys.exit(0)
 
         # Check if user input is empty
         if not user_input:
             # Assign a default or standard path
-            folder_path = "C:/Users/fturi/Desktop/Dati"
+            folder_path = data_folder_path
         else:
             folder_path = user_input
 
@@ -36,7 +37,7 @@ def get_folder_path():
         else:
             print("\033[33mInvalid folder path! Please try again.\033[0m")
 
-def browse_and_select_files(folder_path):
+def browse_and_select_files(folder_path,root=None):
     """Browse and select files and folders from a specified folder path.
 
     This function provides a file browsing interface that allows the user to browse and select files and folders from a specified folder path. The selected files and folders are stored in separate lists and returned at the end of the browsing session.
@@ -190,7 +191,7 @@ def browse_and_select_files(folder_path):
         """
         if not selected_files and not selected_folders:
             print("\033[31mNo selected files or folders.Program stoped.\033[0m")
-            exit(0)
+            sys.exit(0)
         '''
         else:
             if len(selected_files) > 3:
@@ -217,7 +218,8 @@ def browse_and_select_files(folder_path):
         '''   
         root.quit()
 
-    root = tk.Tk()
+    if root==None:
+        root = tk.Tk()
     root.title("Select data to analyzes")
 
     # Path Entry Field
@@ -264,17 +266,24 @@ def browse_and_select_files(folder_path):
 
     return selected_files,selected_folders
 
-def choose_file_paths():
+def choose_file_paths(main_data_folder_path,root=None):
     """
     Allows the user to select files and folders through browsing, removes nested paths, and returns the cleared file paths and parent folder paths.
-
+    
+    Args:
+        main_data_folder_path (str): The path of the main data folder to browse.
+    
     Returns:
         tuple: A tuple containing two lists - cleared_file_paths (list[str]): A list of cleared file paths that are not nested within any of the parent folder paths, and parent_folder_paths (list[str]): A list of parent folder paths without any nested folder paths.
     """
     
     #choose the files via browsing
-    main_data_folder=get_folder_path()
-    file_paths,folder_paths=browse_and_select_files(main_data_folder)
+    file_paths,folder_paths=browse_and_select_files(main_data_folder_path,root)
+    
+    #This handel if the window is closed whit the cross and not whit the button
+    if not file_paths and not folder_paths:
+            print("\033[31mNo selected files or folders.Program stoped.\033[0m")
+            sys.exit(0)
     
     #Change the paths format for future use
     file_paths=[s.replace("\\", "/") for s in file_paths]
@@ -373,4 +382,112 @@ def choose_file_paths():
     
     return cleared_file_paths,parent_folder_paths
 
-#test_file_paths,test_folder_paths = choose_file_paths()
+def browse_and_select_trees(standard_data_folder="C:/Users/fturi/Desktop/Dati",root=None):
+
+    tree_folder=standard_data_folder+"/DataTrees"
+
+    selected_trees=[]
+
+    def browse_directory(path):
+        """Browse the specified directory and populate the file listbox with its contents.
+
+        This function is called when browsing a directory. It takes a path as input and populates the file listbox with the contents of the directory. The function updates the current_path variable and displays the path in the entry field.
+
+        Args:
+            path (str): The path of the directory to browse.
+
+        Returns:
+            None
+        """
+        nonlocal current_path
+        nonlocal selected_trees
+        current_path = path
+        entry.delete(0, tk.END)  # Clear the entry field
+        entry.insert(tk.END, current_path)  # Update the entry field with the current path
+
+        listbox.delete(0, tk.END)  # Clear the listbox
+
+        for item in os.listdir(path):
+            item_path = os.path.join(path, item)
+            if os.path.isfile(item_path):
+                item_signature = "[F] "
+                if item_path in selected_trees:
+                    item_signature += "[X] "
+                listbox.insert(tk.END, item_signature + item)  # Prefix files with "[F]"
+
+    def on_double_click(event):
+        selection = listbox.curselection()
+        if selection:
+            selected_item = listbox.get(selection[0])
+            item_name = selected_item[4:]  # Remove the "[D] " or "[F] " prefix
+            if "[X] " in item_name:
+                item_name = item_name.replace("[X] ", "")  # Remove "[X]" from the item name
+            item_path = os.path.join(current_path, item_name)
+            if item_path in selected_trees:
+                selected_trees.remove(item_path)
+                selected_item = "[F] " + item_name  # Remove "[X]" from the item name
+                listbox.delete(selection[0])
+                listbox.insert(selection[0], selected_item)  # Update the listbox item
+            else:
+                selected_trees.append(item_path)
+                selected_item = "[F] [X] " + item_name  # Add "[X]" immediately after "[F]"
+                listbox.delete(selection[0])
+                listbox.insert(selection[0], selected_item)  # Update the listbox item
+
+    def stop_browsing():
+        """Stop browsing and print the selected files and folders.
+
+        This function is called when the user clicks the "Stop and Print" button in the file browsing interface. 
+        It checks if any files or folders have been selected and prints the selected files and folders to the console.(this part is disabled)
+        The function then terminates the browsing session.
+
+        Returns:
+            None
+        """
+        if not selected_trees:
+            print("\033[31mNo selected trees or folders.Program stoped.\033[0m")
+            sys.exit(0)
+        
+        root.quit()
+                    
+    if root==None:
+        root = tk.Tk()
+    root.title("Select trees to analyzes")
+
+    # Path Entry Field
+    entry = tk.Entry(root, width=50)
+    entry.pack()
+
+    # File Listbox
+    listbox = tk.Listbox(root, width=100, height=20)
+    listbox.pack()
+    #Bind of the action: for example ""<Double-Button-1>"".
+    listbox.bind("<Double-Button-1>", on_double_click)
+
+    # Buttons Frame positions
+    buttons_frame_center = tk.Frame(root)
+    buttons_frame_center.pack()
+    
+    buttons_frame_left= tk.Frame(root)
+    buttons_frame_left.pack(side=tk.LEFT)
+    
+    buttons_frame_right= tk.Frame(root)
+    buttons_frame_right.pack(side=tk.RIGHT)
+    
+
+    # Stop Button
+    stop_button = tk.Button(buttons_frame_right, text="Stop and Load", command=stop_browsing)
+    stop_button.pack()
+
+    # Initial browsing
+    current_path = tree_folder
+    browse_directory(tree_folder)
+
+    root.mainloop()
+
+    #Change the paths format for future use
+    selected_trees=[s.replace("\\", "/") for s in selected_trees]
+    return selected_trees
+
+#main_data_folder=get_main_data_folder_path()
+#test_file_paths,test_folder_paths = choose_file_paths(main_data_folder)
