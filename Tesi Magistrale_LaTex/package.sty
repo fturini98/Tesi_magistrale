@@ -1,0 +1,30 @@
+%Aggiusta il font se no mi da errore
+\usepackage{fix-cm}
+
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+%Style of header and foot of pages
+%---------------------------------
+\usepackage{fancyhdr}
+\setlength{\headheight}{15.59995pt}
+\pagestyle{fancy}%You must call this for activate the style
+\fancyhf{} % Clear all header and footer fields
+\fancyhead[C]{\leftmark} % Display section name in the center of the header
+\fancyfoot[C]{\thepage} % Display page number in the center of the footer
+
+%For forcing figures in place
+%----------------------------
+\usepackage{float}
+
+%For enfase equation
+%-------------------
+\usepackage{tcolorbox}
+
+\newcommand{\enfase}[1]{%
+    \begin{tcolorbox}[colback=blue!10!white,colframe=blue!60!black]
+    #1
+    \end{tcolorbox}%
+}

@@ -1,0 +1,68 @@
+\documentclass{article}
+
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[fontsize=13pt]{scrextend} %font dimension
+\raggedbottom % Leave space if the page is incomplete
+
+% Useful packages
+\usepackage{package}
+
+\begin{document}
+%title page layout
+\include{sections/Title_page}
+
+\pagestyle{empty}
+\clearpage
+
+%abstract
+\begin{abstract}
+Your abstract.
+\end{abstract}
+\clearpage
+
+%index
+\tableofcontents
+\clearpage
+
+%sections
+\pagestyle{fancy}
+\setcounter{page}{1}
+\include{sections/Intorduction}
+\include{sections/ADM_interaction_with_star}
+\include{sections/State_of_art_for_ADM_in_the_stars}
+
+%appendices
+\pagestyle{plain}
+\clearpage
+\appendix
+\pagenumbering{Roman}
+
+%appendix section
+\include{appendices/AppendixA}
+\include{appendices/Appendix_DM_scale_height_inside_the_star}
+
+%bibliography
+\clearpage
+\pagenumbering{roman}
+\addcontentsline{toc}{section}{\refname} % Manually add the bibliography to the table of contents
+\bibliographystyle{plainurl}
+\bibliography{sample}
+
+%acknowledgments
+\pagestyle{empty}
+\clearpage
+\include{sections/Acknowledgments}
+
+% Blank page
+\newpage
+
+\mbox{}
+
+\end{document}
