@@ -6,6 +6,8 @@
 *.blg
 *.bbl
 *.aux
+*.out
+*.toc
 
 #Escludo PDF fino a completamento
 *.pdf
